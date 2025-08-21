@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Vueltas para Martina</title>
+    <!-- Icono para la app -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧶</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧶</text></svg>">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Contador Vueltas">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #d64d7e;
+            --secondary: #ffd1dc;
+            --dark: #333;
+            --light: #f9f3f3;
+            --gray: #6c757d;
+            --danger: #dc3545;
+            --success: #28a745;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --timer: #8a2be2;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            --light: #2d2d2d;
+            --secondary: #5a2d3e;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--secondary);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--primary);
+            cursor: pointer;
+        }
+        
+        .personalized-message {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            border: 2px dashed var(--primary);
+            font-style: italic;
+        }
+        
+        .dark-mode .personalized-message {
+            background-color: rgba(45, 45, 45, 0.9);
+            color: #f0f0f0;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .dark-mode .container {
+            background-color: #2d2d2d;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--secondary);
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--dark);
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+        
+        .dark-mode .tab {
+            color: #f0f0f0;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .project-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input, textarea, button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input, textarea {
+            border: 1px solid #ddd;
+            width: 100%;
+        }
+        
+        .dark-mode input, .dark-mode textarea {
+            background-color: #3d3d3d;
+            color: #fff;
+            border-color: #555;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background-color: #c2346a;
+        }
+        
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+        
+        .btn-info {
+            background-color: var(--info);
+        }
+        
+        .btn-timer {
+            background-color: var(--timer);
+        }
+        
+        .counter-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .counter-display {
+            font-size: 64px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+        
+        .counter-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .counter-btn {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .reset-btn {
+            background-color: var(--gray);
+        }
+        
+        .projects-list {
+            margin-top: 30px;
+        }
+        
+        .project-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .dark-mode .project-item {
+            background-color: #3d3d3d;
+        }
+        
+        .project-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .project-info {
+            flex-grow: 1;
+        }
+        
+        .project-name {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        
+        .project-round {
+            font-size: 24px;
+            margin-top: 5px;
+        }
+        
+        .project-notes {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background-color: var(--secondary);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .dark-mode .stat-box {
+            background-color: #3d2d35;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray);
+        }
+        
+        .timer-container {
+            background-color: var(--secondary);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .dark-mode .timer-container {
+            background-color: #3d2d35;
+        }
+        
+        .timer-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--timer);
+            margin: 15px 0;
+            font-family: monospace;
+        }
+        
+        .timer-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .timer-history {
+            margin-top: 20px;
+        }
+        
+        .timer-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #f0f0f0;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+        
+        .dark-mode .timer-item {
+            background-color: #3d3d3d;
+        }
+        
+        .marker-list {
+            margin-top: 15px;
+        }
+        
+        .marker-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #f0f0f0;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+        
+        .dark-mode .marker-item {
+            background-color: #3d3d3d;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--gray);
+            font-size: 14px;
+            padding: 10px;
+        }
+        
+        @media (max-width: 480px) {
+            .counter-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+            
+            .counter-display {
+                font-size: 54px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .timer-display {
+                font-size: 28px;
+            }
+            
+            .tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Contador de Vueltas</h1>
+        <button class="theme-toggle" id="theme-toggle">🌙</button>
+    </header>
+    
+    <div class="personalized-message">
+        <p>Para la mejor tejedora 💖</p>
+    </div>
+    
+    <div class="tab-container">
+        <button class="tab active" data-tab="counter">Contador</button>
+        <button class="tab" data-tab="projects">Proyectos</button>
+        <button class="tab" data-tab="stats">Estadísticas</button>
+        <button class="tab" data-tab="timer">Temporizador</button>
+    </div>
+    
+    <div class="tab-content active" id="counter-tab">
+        <div class="container">
+            <div id="welcome-section">
+                <h2>¡Bienvenida Martina!</h2>
+                <p>Para comenzar, añade un nuevo proyecto de amigurumi.</p>
+                <button id="start-btn" class="counter-btn">Comenzar</button>
+            </div>
+            
+            <div id="project-form-section" class="hidden">
+                <h2>Añadir nuevo proyecto</h2>
+                <div class="project-form">
+                    <input type="text" id="project-name" placeholder="Nombre del amigurumi" required>
+                    <textarea id="project-notes" placeholder="Notas o instrucciones especiales (opcional)"></textarea>
+                    <button id="add-project"><i class="fas fa-plus"></i> Añadir proyecto</button>
+                </div>
+            </div>
+            
+            <div id="counter-section" class="counter-section hidden">
+                <h2 id="current-project-name">Proyecto actual</h2>
+                <p id="current-project-notes" class="project-notes"></p>
+                <div class="counter-display" id="round-count">0</div>
+                
+                <div class="counter-controls">
+                    <button class="counter-btn" id="decrease-btn"><i class="fas fa-minus"></i></button>
+                    <button class="counter-btn" id="increase-btn"><i class="fas fa-plus"></i></button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="add-marker" class="btn-sm btn-info"><i class="fas fa-bookmark"></i> Marcar vuelta</button>
+                    <button id="reset-round" class="btn-sm reset-btn"><i class="fas fa-undo"></i> Reiniciar</button>
+                    <button id="new-project" class="btn-sm"><i class="fas fa-plus"></i> Nuevo proyecto</button>
+                </div>
+                
+                <div id="markers-container" class="hidden">
+                    <h3 style="margin-top: 20px;">Marcadores</h3>
+                    <div id="marker-list" class="marker-list">
+                        <!-- Los marcadores se mostrarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tab-content" id="projects-tab">
+        <div class="container">
+            <h2>Tus proyectos</h2>
+            <div id="projects-list" class="projects-list">
+                <!-- Los proyectos se mostrarán aquí -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="tab-content" id="stats-tab">
+        <div class="container">
+            <h2>Estadísticas</h2>
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-value" id="total-projects">0</div>
+                    <div class="stat-label">Proyectos totales</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="total-rounds">0</div>
+                    <div class="stat-label">Vueltas contadas</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="active-projects">0</div>
+                    <div class="stat-label">Proyectos activos</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="total-markers">0</div>
+                    <div class="stat-label">Marcadores</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tab-content" id="timer-tab">
+        <div class="container">
+            <h2>Temporizador</h2>
+            <p>Configura un temporizador para medir tu tiempo de tejido</p>
+            
+            <div class="timer-container">
+                <div class="timer-display" id="timer-display">00:00:00</div>
+                
+                <div class="timer-buttons">
+                    <button id="timer-start" class="btn-sm btn-success"><i class="fas fa-play"></i> Iniciar</button>
+                    <button id="timer-pause" class="btn-sm btn-warning"><i class="fas fa-pause"></i> Pausar</button>
+                    <button id="timer-reset" class="btn-sm btn-danger"><i class="fas fa-redo"></i> Reiniciar</button>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button id="timer-1h" class="btn-sm btn-timer">1 hora</button>
+                    <button id="timer-30m" class="btn-sm btn-timer">30 min</button>
+                    <button id="timer-15m" class="btn-sm btn-timer">15 min</button>
+                </div>
+            </div>
+            
+            <div class="timer-history">
+                <h3>Historial de tiempos</h3>
+                <div id="timer-list">
+                    <!-- Los tiempos se mostrarán aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Hecho con ❤️ para Martina - ¡Sigue tejiendo maravillas!</p>
+    </footer>
+
+    <script>
+        // Elementos del DOM
+        const welcomeSection = document.getElementById('welcome-section');
+        const projectFormSection = document.getElementById('project-form-section');
+        const counterSection = document.getElementById('counter-section');
+        const startBtn = document.getElementById('start-btn');
+        const projectNameInput = document.getElementById('project-name');
+        const projectNotesInput = document.getElementById('project-notes');
+        const addProjectBtn = document.getElementById('add-project');
+        const currentProjectName = document.getElementById('current-project-name');
+        const currentProjectNotes = document.getElementById('current-project-notes');
+        const roundCountDisplay = document.getElementById('round-count');
+        const increaseBtn = document.getElementById('increase-btn');
+        const decreaseBtn = document.getElementById('decrease-btn');
+        const resetRoundBtn = document.getElementById('reset-round');
+        const newProjectBtn = document.getElementById('new-project');
+        const projectsList = document.getElementById('projects-list');
+        const themeToggle = document.getElementById('theme-toggle');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const addMarkerBtn = document.getElementById('add-marker');
+        const markersContainer = document.getElementById('markers-container');
+        const markerList = document.getElementById('marker-list');
+        const totalProjectsEl = document.getElementById('total-projects');
+        const totalRoundsEl = document.getElementById('total-rounds');
+        const activeProjectsEl = document.getElementById('active-projects');
+        const totalMarkersEl = document.getElementById('total-markers');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerStartBtn = document.getElementById('timer-start');
+        const timerPauseBtn = document.getElementById('timer-pause');
+        const timerResetBtn = document.getElementById('timer-reset');
+        const timer1hBtn = document.getElementById('timer-1h');
+        const timer30mBtn = document.getElementById('timer-30m');
+        const timer15mBtn = document.getElementById('timer-15m');
+        const timerList = document.getElementById('timer-list');
+
+        // Variables de estado
+        let currentProject = null;
+        let projects = JSON.parse(localStorage.getItem('crochetProjects')) || [];
+        let markers = JSON.parse(localStorage.getItem('crochetMarkers')) || {};
+        let timerInterval = null;
+        let timerRunning = false;
+        let timerTime = 0;
+        let timerHistory = JSON.parse(localStorage.getItem('crochetTimerHistory')) || [];
+
+        // Inicialización
+        checkDarkMode();
+        renderProjects();
+        updateStats();
+        updateTimerDisplay();
+        renderTimerHistory();
+
+        // Event Listeners
+        startBtn.addEventListener('click', function() {
+            welcomeSection.classList.add('hidden');
+            projectFormSection.classList.remove('hidden');
+        });
+        
+        addProjectBtn.addEventListener('click', function() {
+            const projectName = projectNameInput.value.trim();
+            const projectNotes = projectNotesInput.value.trim();
+            
+            if (projectName) {
+                createNewProject(projectName, projectNotes);
+                projectNameInput.value = '';
+                projectNotesInput.value = '';
+                projectFormSection.classList.add('hidden');
+                counterSection.classList.remove('hidden');
+            }
+        });
+        
+        increaseBtn.addEventListener('click', function() {
+            if (currentProject) {
+                currentProject.round++;
+                updateRoundDisplay();
+                saveProjects();
+                updateStats();
+            }
+        });
+        
+        decreaseBtn.addEventListener('click', function() {
+            if (currentProject && currentProject.round > 0) {
+                currentProject.round--;
+                updateRoundDisplay();
+                saveProjects();
+                updateStats();
+            }
+        });
+        
+        resetRoundBtn.addEventListener('click', function() {
+            if (currentProject) {
+                currentProject.round = 0;
+                updateRoundDisplay();
+                saveProjects();
+                updateStats();
+            }
+        });
+        
+        newProjectBtn.addEventListener('click', function() {
+            counterSection.classList.add('hidden');
+            projectFormSection.classList.remove('hidden');
+            markersContainer.classList.add('hidden');
+            currentProject = null;
+        });
+        
+        themeToggle.addEventListener('click', function() {
+            const isDarkMode = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+            themeToggle.textContent = isDarkMode ? '☀️' : '🌙';
+        });
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Desactivar todas las pestañas
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                
+                // Activar la pestaña seleccionada
+                this.classList.add('active');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // Si es la pestaña de estadísticas, actualizarlas
+                if (tabId === 'stats') {
+                    updateStats();
+                }
+            });
+        });
+        
+        addMarkerBtn.addEventListener('click', function() {
+            if (currentProject && currentProject.round > 0) {
+                addMarker(currentProject.round);
+            }
+        });
+        
+        // Temporizador
+        timerStartBtn.addEventListener('click', startTimer);
+        timerPauseBtn.addEventListener('click', pauseTimer);
+        timerResetBtn.addEventListener('click', resetTimer);
+        timer1hBtn.addEventListener('click', () => setTimer(3600));
+        timer30mBtn.addEventListener('click', () => setTimer(1800));
+        timer15mBtn.addEventListener('click', () => setTimer(900));
+
+        // Funciones
+        function createNewProject(name, notes) {
+            currentProject = {
+                id: Date.now(),
+                name: name,
+                notes: notes,
+                round: 0,
+                createdAt: new Date().toISOString()
+            };
+            
+            projects.push(currentProject);
+            saveProjects();
+            updateRoundDisplay();
+            renderProjects();
+            updateStats();
+        }
+        
+        function updateRoundDisplay() {
+            if (currentProject) {
+                currentProjectName.textContent = currentProject.name;
+                currentProjectNotes.textContent = currentProject.notes;
+                roundCountDisplay.textContent = currentProject.round;
+                
+                // Mostrar marcadores si existen para este proyecto
+                if (markers[currentProject.id] && markers[currentProject.id].length > 0) {
+                    markersContainer.classList.remove('hidden');
+                    renderMarkers();
+                } else {
+                    markersContainer.classList.add('hidden');
+                }
+            }
+        }
+        
+        function saveProjects() {
+            localStorage.setItem('crochetProjects', JSON.stringify(projects));
+            localStorage.setItem('crochetMarkers', JSON.stringify(markers));
+            localStorage.setItem('crochetTimerHistory', JSON.stringify(timerHistory));
+        }
+        
+        function renderProjects() {
+            projectsList.innerHTML = '';
+            
+            if (projects.length === 0) {
+                projectsList.innerHTML = '<p>No hay proyectos aún. ¡Añade uno para comenzar!</p>';
+                return;
+            }
+            
+            projects.forEach(project => {
+                const projectElement = document.createElement('div');
+                projectElement.className = 'project-item';
+                projectElement.innerHTML = `
+                    <div class="project-info">
+                        <div class="project-name">${project.name}</div>
+                        <div class="project-round">Vuelta: ${project.round}</div>
+                        ${project.notes ? `<div class="project-notes">${project.notes}</div>` : ''}
+                    </div>
+                    <div class="project-actions">
+                        <button class="delete-btn btn-sm btn-danger" data-id="${project.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                
+                projectsList.appendChild(projectElement);
+                
+                // Añadir evento para eliminar proyecto
+                const deleteBtn = projectElement.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = parseInt(this.getAttribute('data-id'));
+                    deleteProject(projectId);
+                });
+                
+                // Añadir evento para continuar con este proyecto
+                projectElement.addEventListener('click', function(e) {
+                    if (e.target !== deleteBtn && !deleteBtn.contains(e.target)) {
+                        currentProject = project;
+                        projectFormSection.classList.add('hidden');
+                        counterSection.classList.remove('hidden');
+                        updateRoundDisplay();
+                        
+                        // Cambiar a la pestaña del contador
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabContents.forEach(tc => tc.classList.remove('active'));
+                        document.querySelector('[data-tab="counter"]').classList.add('active');
+                        document.getElementById('counter-tab').classList.add('active');
+                    }
+                });
+            });
+        }
+        
+        function deleteProject(id) {
+            if (confirm('¿Estás segura de que quieres eliminar este proyecto?')) {
+                projects = projects.filter(project => project.id !== id);
+                
+                // Eliminar también los marcadores asociados
+                if (markers[id]) {
+                    delete markers[id];
+                }
+                
+                // Si eliminamos el proyecto actual, volvemos al inicio
+                if (currentProject && currentProject.id === id) {
+                    currentProject = null;
+                    counterSection.classList.add('hidden');
+                    
+                    if (projects.length > 0) {
+                        projectFormSection.classList.remove('hidden');
+                    } else {
+                        welcomeSection.classList.remove('hidden');
+                    }
+                }
+                
+                saveProjects();
+                renderProjects();
+                updateStats();
+            }
+        }
+        
+        function checkDarkMode() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                themeToggle.textContent = '☀️';
+            } else {
+                themeToggle.textContent = '🌙';
+            }
+        }
+        
+        function addMarker(round) {
+            if (!markers[currentProject.id]) {
+                markers[currentProject.id] = [];
+            }
+            
+            const markerText = prompt(`Añadir nota para la vuelta ${round} (opcional):`);
+            
+            markers[currentProject.id].push({
+                round: round,
+                note: markerText || '',
+                timestamp: new Date().toISOString()
+            });
+            
+            saveProjects();
+            renderMarkers();
+            updateStats();
+        }
+        
+        function renderMarkers() {
+            if (!currentProject || !markers[currentProject.id]) {
+                markerList.innerHTML = '';
+                return;
+            }
+            
+            // Ordenar marcadores por vuelta (descendente)
+            const sortedMarkers = markers[currentProject.id].sort((a, b) => b.round - a.round);
+            
+            markerList.innerHTML = '';
+            
+            sortedMarkers.forEach(marker => {
+                const markerElement = document.createElement('div');
+                markerElement.className = 'marker-item';
+                markerElement.innerHTML = `
+                    <div>Vuelta: ${marker.round}</div>
+                    <div>${marker.note || '<sin nota>'}</div>
+                `;
+                markerList.appendChild(markerElement);
+            });
+        }
+        
+        function updateStats() {
+            totalProjectsEl.textContent = projects.length;
+            
+            const totalRounds = projects.reduce((sum, project) => sum + project.round, 0);
+            totalRoundsEl.textContent = totalRounds;
+            
+            const activeProjects = projects.filter(p => p.round > 0).length;
+            activeProjectsEl.textContent = activeProjects;
+            
+            const totalMarkers = Object.values(markers).reduce((sum, projectMarkers) => sum + projectMarkers.length, 0);
+            totalMarkersEl.textContent = totalMarkers;
+        }
+        
+        // Funciones del temporizador
+        function startTimer() {
+            if (!timerRunning) {
+                timerInterval = setInterval(function() {
+                    timerTime++;
+                    updateTimerDisplay();
+                }, 1000);
+                timerRunning = true;
+            }
+        }
+        
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            
+            if (timerTime > 0) {
+                // Guardar en el historial
+                timerHistory.push({
+                    duration: timerTime,
+                    date: new Date().toISOString()
+                });
+                saveProjects();
+                renderTimerHistory();
+            }
+            
+            timerTime = 0;
+            timerRunning = false;
+            updateTimerDisplay();
+        }
+        
+        function setTimer(seconds) {
+            resetTimer();
+            timerTime = seconds;
+            updateTimerDisplay();
+        }
+        
+        function updateTimerDisplay() {
+            const hours = Math.floor(timerTime / 3600);
+            const minutes = Math.floor((timerTime % 3600) / 60);
+            const seconds = timerTime % 60;
+            
+            timerDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function renderTimerHistory() {
+            timerList.innerHTML = '';
+            
+            if (timerHistory.length === 0) {
+                timerList.innerHTML = '<p>No hay historial de temporizador aún.</p>';
+                return;
+            }
+            
+            // Ordenar historial por fecha (más reciente primero)
+            const sortedHistory = timerHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedHistory.forEach(entry => {
+                const hours = Math.floor(entry.duration / 3600);
+                const minutes = Math.floor((entry.duration % 3600) / 60);
+                const seconds = entry.duration % 60;
+                
+                const entryElement = document.createElement('div');
+                entryElement.className = 'timer-item';
+                entryElement.innerHTML = `
+                    <div>${new Date(entry.date).toLocaleDateString()}</div>
+                    <div>${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</div>
+                `;
+                timerList.appendChild(entryElement);
+            });
+        }
+        
+        // Si hay proyectos guardados, mostrar el formulario directamente
+        if (projects.length > 0) {
+            welcomeSection.classList.add('hidden');
+            projectFormSection.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
