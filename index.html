@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Ovillando Lunas</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para los iconos -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Efecto de vidrio esmerilado suave para las tarjetas */
+        .glass-effect { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(8px); 
+        }
+        /* Ocultar flechas en inputs numéricos si los hubiera */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-violet-50 min-h-screen text-gray-800 font-sans selection:bg-violet-200 bg-[url('https://www.transparenttextures.com/patterns/knitted-netting.png')]">
+    
+    <!-- Encabezado Principal -->
+    <header class="max-w-7xl mx-auto p-3 sm:p-8 pt-6 sm:pt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 sm:mb-8 gap-4 sm:gap-6 bg-white/70 p-5 sm:p-6 rounded-3xl shadow-sm border border-violet-100">
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="bg-violet-600 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-md">
+                    <i class="fas fa-moon"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-black text-violet-900 tracking-tight">Ovillando Lunas</h1>
+                    <p class="text-violet-700 font-medium text-sm sm:text-base">Control de vueltas y tiempos</p>
+                </div>
+            </div>
+            <button onclick="addProject()" class="w-full md:w-auto bg-violet-600 hover:bg-violet-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold shadow-lg shadow-violet-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 sm:gap-3 text-base sm:text-lg">
+                <i class="fas fa-plus"></i> Añadir Proyecto
+            </button>
+        </div>
+        
+        <!-- Contenedor de la Cuadrícula de Proyectos -->
+        <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+            <!-- Las tarjetas de proyectos se inyectarán aquí mediante JavaScript -->
+        </div>
+    </header>
+
+    <script>
+        // Estado de la aplicación
+        let projects = [];
+        let nextId = 1;
+        let saveTick = 0;
+
+        // Devuelve el emoji de la fase lunar según el progreso
+        function getMoonPhase(count, target) {
+            if (!target || target <= 0) return '🌙'; // Luna por defecto si no hay meta
+            const ratio = count / target;
+            if (ratio >= 1) return '🌕'; // Luna llena (Meta cumplida)
+            if (ratio >= 0.75) return '🌔'; // Gibosa creciente
+            if (ratio >= 0.5) return '🌓'; // Cuarto creciente
+            if (ratio > 0) return '🌒'; // Luna nueva visible
+            return '🌑'; // Luna nueva (0%)
+        }
+
+        // Actualiza el icono de la luna en la UI
+        function updateMoon(project) {
+            const moonEl = document.getElementById(`moon-${project.id}`);
+            if (moonEl) {
+                moonEl.innerText = getMoonPhase(project.count, project.target);
+                // Pequeña animación de salto
+                moonEl.classList.remove('scale-125');
+                void moonEl.offsetWidth; // Forzar el reflow
+                moonEl.classList.add('scale-125', 'transition-transform');
+                setTimeout(() => moonEl.classList.remove('scale-125'), 200);
+            }
+        }
+
+        // Actualiza la meta del proyecto
+        function updateTarget(id, newTarget) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                project.target = parseInt(newTarget) || 0;
+                updateMoon(project);
+                saveData();
+            }
+        }
+
+        // UI Helpers (Reemplazan alert y confirm nativos)
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 w-max max-w-[90vw] pointer-events-none text-center';
+                document.body.appendChild(container);
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `px-5 py-3 rounded-2xl shadow-xl text-sm font-bold transition-all duration-300 transform translate-y-10 opacity-0 ${type === 'error' ? 'bg-rose-500 text-white' : 'bg-violet-800 text-white'}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function customConfirm(message, callback) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-violet-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+            
+            const modal = document.createElement('div');
+            modal.className = 'bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-95 opacity-0 border-2 border-violet-100';
+            
+            modal.innerHTML = `
+                <div class="text-violet-500 mb-4 text-3xl text-center"><i class="fas fa-circle-question"></i></div>
+                <h3 class="text-lg font-bold text-violet-900 mb-6 text-center leading-tight">${message}</h3>
+                <div class="flex flex-col sm:flex-row justify-center gap-3">
+                    <button id="btn-cancel" class="px-5 py-3 text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors w-full sm:w-auto">Cancelar</button>
+                    <button id="btn-confirm" class="px-5 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold transition-colors shadow-md w-full sm:w-auto">Aceptar</button>
+                </div>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            requestAnimationFrame(() => {
+                modal.classList.remove('scale-95', 'opacity-0');
+            });
+
+            function close() {
+                modal.classList.add('scale-95', 'opacity-0');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.remove(), 200);
+            }
+
+            document.getElementById('btn-cancel').onclick = () => { close(); };
+            document.getElementById('btn-confirm').onclick = () => { close(); callback(); };
+        }
+
+        // Guardar datos en el almacenamiento local
+        function saveData() {
+            localStorage.setItem('ovillandoLunas_projects', JSON.stringify(projects));
+            localStorage.setItem('ovillandoLunas_nextId', nextId);
+        }
+
+        // Cargar datos del almacenamiento local
+        function loadData() {
+            const savedProjects = localStorage.getItem('ovillandoLunas_projects');
+            const savedNextId = localStorage.getItem('ovillandoLunas_nextId');
+            
+            if (savedProjects && savedNextId) {
+                projects = JSON.parse(savedProjects);
+                nextId = parseInt(savedNextId);
+                // Asegurar que los cronómetros carguen en pausa
+                projects.forEach(p => p.isRunning = false); 
+                projects.forEach(p => renderProject(p));
+            } else {
+                addProject();
+                // Cambiamos el nombre del primero para que sea acogedor
+                setTimeout(() => {
+                    const firstInput = document.querySelector('input[type="text"]');
+                    if(firstInput) {
+                        firstInput.value = "Mi primer tejido 🌙";
+                        updateTitle(projects[0].id, "Mi primer tejido 🌙");
+                    }
+                }, 50);
+            }
+        }
+
+        // Formatea los segundos en HH:MM:SS
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        // Crea un nuevo proyecto y lo renderiza
+        function addProject() {
+            const project = {
+                id: nextId++,
+                title: 'Nuevo Proyecto',
+                notes: '',
+                count: 0,
+                target: 0,
+                time: 0,
+                isRunning: false
+            };
+            projects.push(project);
+            renderProject(project);
+            saveData();
+        }
+
+        // Elimina un proyecto del estado y del DOM
+        function deleteProject(id) {
+            customConfirm("¿Estás segura de que quieres eliminar este proyecto?", () => {
+                projects = projects.filter(p => p.id !== id);
+                const el = document.getElementById(`project-${id}`);
+                if (el) {
+                    el.style.transform = 'scale(0.9)';
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 200);
+                }
+                saveData();
+                showToast("Proyecto eliminado");
+            });
+        }
+
+        // Modifica el contador de vueltas
+        function updateCount(id, change) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                const oldCount = project.count;
+                project.count = Math.max(0, project.count + change);
+                document.getElementById(`count-${id}`).innerText = project.count;
+                
+                updateMoon(project);
+                saveData();
+
+                // Celebración si alcanzó la meta
+                if (project.target > 0 && project.count >= project.target && oldCount < project.target && change > 0) {
+                    showToast("¡Meta alcanzada! 🌕✨ ¡Felicidades!");
+                }
+            }
+        }
+
+        // Reinicia el contador de vueltas a cero
+        function resetCount(id) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                customConfirm("¿Poner el contador de vueltas a cero?", () => {
+                    project.count = 0;
+                    document.getElementById(`count-${id}`).innerText = project.count;
+                    updateMoon(project);
+                    saveData();
+                });
+            }
+        }
+
+        // Pausa o inicia el cronómetro
+        function toggleTimer(id) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                project.isRunning = !project.isRunning;
+                const btn = document.getElementById(`timer-btn-${id}`);
+                const icon = btn.querySelector('i');
+                
+                if (project.isRunning) {
+                    btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600', 'text-white');
+                    btn.classList.add('bg-amber-100', 'hover:bg-amber-200', 'text-amber-700');
+                    icon.classList.remove('fa-play');
+                    icon.classList.add('fa-pause');
+                } else {
+                    btn.classList.remove('bg-amber-100', 'hover:bg-amber-200', 'text-amber-700');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600', 'text-white');
+                    icon.classList.remove('fa-pause');
+                    icon.classList.add('fa-play');
+                }
+                saveData();
+            }
+        }
+
+        // Detiene y reinicia el cronómetro a cero
+        function resetTimer(id) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                customConfirm("¿Reiniciar el tiempo a cero?", () => {
+                    project.time = 0;
+                    project.isRunning = false;
+                    document.getElementById(`time-${id}`).innerText = formatTime(0);
+                    
+                    const btn = document.getElementById(`timer-btn-${id}`);
+                    const icon = btn.querySelector('i');
+                    btn.classList.remove('bg-amber-100', 'hover:bg-amber-200', 'text-amber-700');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600', 'text-white');
+                    icon.classList.remove('fa-pause');
+                    icon.classList.add('fa-play');
+                    saveData();
+                });
+            }
+        }
+
+        // Guarda el título cuando el usuario lo edita
+        function updateTitle(id, newTitle) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                project.title = newTitle;
+                saveData();
+            }
+        }
+
+        // Guarda las notas cuando el usuario las edita
+        function updateNotes(id, newNotes) {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                project.notes = newNotes;
+                saveData();
+            }
+        }
+
+        // Inyecta el HTML de una tarjeta de proyecto en la página
+        function renderProject(project) {
+            const container = document.getElementById('projects-container');
+            const card = document.createElement('div');
+            card.id = `project-${project.id}`;
+            card.className = 'glass-effect rounded-3xl p-5 sm:p-6 shadow-xl border-2 border-white flex flex-col gap-4 sm:gap-5 relative transition-all duration-300';
+            
+            // Compatibilidad con proyectos guardados viejos
+            if(project.notes === undefined) project.notes = '';
+            if(project.target === undefined) project.target = 0;
+            
+            card.innerHTML = `
+                <!-- Botón de eliminar -->
+                <button onclick="deleteProject(${project.id})" class="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Eliminar proyecto">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                
+                <!-- Título editable -->
+                <div class="pr-10">
+                    <input type="text" value="${project.title}" 
+                        onchange="updateTitle(${project.id}, this.value)"
+                        class="font-bold text-lg sm:text-xl text-violet-900 bg-transparent border-b-2 border-dashed border-violet-300 hover:border-violet-500 focus:border-violet-600 focus:outline-none w-full pb-1 transition-colors"
+                        placeholder="Nombre del proyecto...">
+                </div>
+
+                <!-- Sección de Notas -->
+                <div>
+                    <textarea 
+                        onchange="updateNotes(${project.id}, this.value)"
+                        class="w-full bg-white/50 border border-violet-100 rounded-xl p-3 text-sm text-gray-700 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400 resize-none transition-all placeholder-violet-300" 
+                        rows="2" 
+                        placeholder="Notas (ej. Aguja N°4, lana...)"
+                    >${project.notes}</textarea>
+                </div>
+
+                <!-- Sección del Contador -->
+                <div class="bg-violet-100/50 rounded-2xl p-4 sm:p-5 text-center border border-violet-100 shadow-inner">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-xs text-violet-600 font-bold uppercase tracking-widest">Vueltas</p>
+                        <div class="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full border border-violet-100 shadow-sm" title="Establece una meta de vueltas">
+                            <span class="text-xs text-violet-600 font-bold">Meta:</span>
+                            <input type="number" min="0" value="${project.target || ''}" 
+                                onchange="updateTarget(${project.id}, this.value)" 
+                                class="w-12 bg-transparent border-b border-violet-300 focus:outline-none text-center font-bold text-violet-900 placeholder-violet-300" 
+                                placeholder="---">
+                            <span id="moon-${project.id}" class="text-xl ml-1 drop-shadow-sm transition-transform duration-300 inline-block">${getMoonPhase(project.count, project.target)}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <button onclick="updateCount(${project.id}, -1)" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white shadow-sm hover:shadow-md hover:bg-violet-50 text-violet-600 font-bold text-xl flex items-center justify-center transition-all active:scale-90 border border-violet-200">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        
+                        <span id="count-${project.id}" class="text-5xl sm:text-6xl font-black text-violet-900 w-20 sm:w-24 text-center tabular-nums tracking-tighter">${project.count}</span>
+                        
+                        <button onclick="updateCount(${project.id}, 1)" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-600 shadow-md hover:bg-violet-700 hover:shadow-lg text-white font-bold text-xl flex items-center justify-center transition-all active:scale-90">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <button onclick="resetCount(${project.id})" class="mt-5 py-2 px-4 text-xs font-medium text-gray-500 hover:text-violet-700 transition-colors">
+                        <i class="fas fa-rotate-left mr-1"></i> Poner a cero
+                    </button>
+                </div>
+
+                <!-- Sección del Cronómetro -->
+                <div class="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100 mt-auto">
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">Tiempo de Tejido</p>
+                    <div class="flex items-center justify-center gap-3 sm:gap-4">
+                        <button id="timer-btn-${project.id}" onclick="toggleTimer(${project.id})" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full ${project.isRunning ? 'bg-amber-100 hover:bg-amber-200 text-amber-700' : 'bg-emerald-500 hover:bg-emerald-600 text-white'} shadow-md flex items-center justify-center transition-all active:scale-90 text-lg">
+                            <i class="fas ${project.isRunning ? 'fa-pause' : 'fa-play ml-1'}"></i>
+                        </button>
+                        
+                        <span id="time-${project.id}" class="text-2xl sm:text-3xl font-mono font-bold text-slate-700 tracking-tight w-28 sm:w-32 tabular-nums">${formatTime(project.time)}</span>
+                        
+                        <button onclick="resetTimer(${project.id})" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-sm hover:bg-red-50 hover:text-red-600 text-slate-400 flex items-center justify-center transition-all active:scale-90 border border-slate-200" title="Detener y reiniciar tiempo">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        // Bucle global del cronómetro
+        setInterval(() => {
+            let timerRunning = false;
+            projects.forEach(p => {
+                if (p.isRunning) {
+                    p.time++;
+                    timerRunning = true;
+                    const timeEl = document.getElementById(`time-${p.id}`);
+                    if (timeEl) {
+                        timeEl.innerText = formatTime(p.time);
+                    }
+                }
+            });
+            
+            // Guardar en segundo plano si hay un cronómetro activo
+            if (timerRunning) {
+                saveTick++;
+                if(saveTick >= 5) {
+                    saveData();
+                    saveTick = 0;
+                }
+            }
+        }, 1000);
+
+        // Cargar proyectos al abrir la página
+        window.onload = () => {
+            loadData();
+        };
+    </script>
+</body>
+</html>
